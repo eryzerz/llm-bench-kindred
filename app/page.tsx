@@ -59,13 +59,14 @@ export default function LLMComparisonApp() {
   const [model2, setModel2] = useState("google/gemini-2.0-flash-lite-001");
   const [customApiKey, setCustomApiKey] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingModel1, setIsLoadingModel1] = useState(false);
-  const [isLoadingModel2, setIsLoadingModel2] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [model1Error, setModel1Error] = useState<string | null>(null);
   const [model2Error, setModel2Error] = useState<string | null>(null);
   const [model1Result, setModel1Result] = useState<ModelResult | null>(null);
   const [model2Result, setModel2Result] = useState<ModelResult | null>(null);
+  const [completedModels, setCompletedModels] = useState<
+    { id: string; result: ModelResult }[]
+  >([]);
 
   // Handle prompt option change
   const handlePromptOptionChange = (value: string) => {
@@ -89,76 +90,62 @@ export default function LLMComparisonApp() {
 
     // Reset all states
     setIsLoading(true);
-    setIsLoadingModel1(true);
-    setIsLoadingModel2(true);
     setError(null);
     setModel1Error(null);
     setModel2Error(null);
     setModel1Result(null);
     setModel2Result(null);
+    setCompletedModels([]);
 
-    // Call model 1
-    generateWithModel({
+    // Create the request parameters
+    const model1Request = {
       systemPrompt,
       userPrompt,
       modelId: model1,
       customApiKey: customApiKey || undefined,
-    })
-      .then((result) => {
-        setModel1Result(result);
-      })
-      .catch((error) => {
-        console.error(`Error with model ${model1}:`, error);
-        setModel1Error(
-          error instanceof Error ? error.message : "An unknown error occurred"
-        );
-      })
-      .finally(() => {
-        setIsLoadingModel1(false);
-      });
+    };
 
-    // Call model 2
-    generateWithModel({
+    const model2Request = {
       systemPrompt,
       userPrompt,
       modelId: model2,
       customApiKey: customApiKey || undefined,
-    })
-      .then((result) => {
-        setModel2Result(result);
-      })
-      .catch((error) => {
-        console.error(`Error with model ${model2}:`, error);
-        setModel2Error(
-          error instanceof Error ? error.message : "An unknown error occurred"
-        );
-      })
-      .finally(() => {
-        setIsLoadingModel2(false);
-      });
+    };
 
-    // Promise.allSettled to set overall loading state
-    Promise.allSettled([
-      generateWithModel({
-        systemPrompt,
-        userPrompt,
-        modelId: model1,
-        customApiKey: customApiKey || undefined,
-      }),
-      generateWithModel({
-        systemPrompt,
-        userPrompt,
-        modelId: model2,
-        customApiKey: customApiKey || undefined,
-      }),
-    ]).finally(() => {
+    try {
+      // Make parallel requests for both models
+      const [result1, result2] = await Promise.all([
+        generateWithModel(model1Request),
+        generateWithModel(model2Request),
+      ]);
+
+      // Set results after both are completed
+      setModel1Result(result1);
+      setModel2Result(result2);
+
+      // Also update completedModels for the sorted view
+      setCompletedModels([
+        { id: model1, result: result1 },
+        { id: model2, result: result2 },
+      ]);
+    } catch (error) {
+      console.error("Error comparing models:", error);
+      setError(
+        error instanceof Error ? error.message : "An unknown error occurred"
+      );
+    } finally {
       setIsLoading(false);
-    });
+    }
   };
 
   // Check if any results are available to show the results card
   const showResults =
-    model1Result || model2Result || model1Error || model2Error;
+    !isLoading && (model1Result || model2Result || model1Error || model2Error);
+
+  // Sort completed models by response time
+  const sortedModels = [...completedModels].sort(
+    (a, b) => a.result.responseTime - b.result.responseTime
+  );
 
   return (
     <div className="container mx-auto py-10 space-y-8">
@@ -303,110 +290,68 @@ export default function LLMComparisonApp() {
           <CardHeader>
             <CardTitle>Comparison Results</CardTitle>
             <CardDescription>
-              Side-by-side comparison of model outputs and response times
+              Model outputs ordered by response time (fastest first)
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="side-by-side" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="side-by-side">Side by Side</TabsTrigger>
-                <TabsTrigger value="individual">Individual</TabsTrigger>
-              </TabsList>
-              <TabsContent value="side-by-side" className="mt-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
+            {/* Display results ordered by response time */}
+            {sortedModels.length > 0 ? (
+              <div className="space-y-6">
+                {sortedModels.map((item) => {
+                  const modelId = item.id;
+                  const result = item.result;
+                  return (
+                    <div key={modelId} className="border p-4 rounded-md">
+                      <h3 className="text-lg font-medium mb-2">{modelId}</h3>
+                      <div className="text-sm text-muted-foreground mb-2">
+                        Response time: {result.responseTime}ms
+                      </div>
+                      <div className="p-4 rounded-md bg-muted/50 whitespace-pre-wrap">
+                        {result.output}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Fallback if sortedModels is empty but we have results */}
+                {model1Result && (
+                  <div className="border p-4 rounded-md">
                     <h3 className="text-lg font-medium mb-2">{model1}</h3>
-                    {isLoadingModel1 ? (
-                      <div className="flex items-center justify-center p-8">
-                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : model1Error ? (
-                      <Alert variant="destructive" className="mb-2">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{model1Error}</AlertDescription>
-                      </Alert>
-                    ) : model1Result ? (
-                      <>
-                        <div className="text-sm text-muted-foreground mb-2">
-                          Response time: {model1Result.responseTime}ms
-                        </div>
-                        <div className="p-4 rounded-md bg-muted/50 whitespace-pre-wrap">
-                          {model1Result.output}
-                        </div>
-                      </>
-                    ) : null}
+                    <div className="text-sm text-muted-foreground mb-2">
+                      Response time: {model1Result.responseTime}ms
+                    </div>
+                    <div className="p-4 rounded-md bg-muted/50 whitespace-pre-wrap">
+                      {model1Result.output}
+                    </div>
                   </div>
-                  <div>
+                )}
+                {model1Error && (
+                  <Alert variant="destructive" className="mb-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{model1Error}</AlertDescription>
+                  </Alert>
+                )}
+                {model2Result && (
+                  <div className="border p-4 rounded-md">
                     <h3 className="text-lg font-medium mb-2">{model2}</h3>
-                    {isLoadingModel2 ? (
-                      <div className="flex items-center justify-center p-8">
-                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : model2Error ? (
-                      <Alert variant="destructive" className="mb-2">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{model2Error}</AlertDescription>
-                      </Alert>
-                    ) : model2Result ? (
-                      <>
-                        <div className="text-sm text-muted-foreground mb-2">
-                          Response time: {model2Result.responseTime}ms
-                        </div>
-                        <div className="p-4 rounded-md bg-muted/50 whitespace-pre-wrap">
-                          {model2Result.output}
-                        </div>
-                      </>
-                    ) : null}
+                    <div className="text-sm text-muted-foreground mb-2">
+                      Response time: {model2Result.responseTime}ms
+                    </div>
+                    <div className="p-4 rounded-md bg-muted/50 whitespace-pre-wrap">
+                      {model2Result.output}
+                    </div>
                   </div>
-                </div>
-              </TabsContent>
-              <TabsContent value="individual" className="mt-4 space-y-6">
-                <div>
-                  <h3 className="text-lg font-medium mb-2">{model1}</h3>
-                  {isLoadingModel1 ? (
-                    <div className="flex items-center justify-center p-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : model1Error ? (
-                    <Alert variant="destructive" className="mb-2">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{model1Error}</AlertDescription>
-                    </Alert>
-                  ) : model1Result ? (
-                    <>
-                      <div className="text-sm text-muted-foreground mb-2">
-                        Response time: {model1Result.responseTime}ms
-                      </div>
-                      <div className="p-4 rounded-md bg-muted/50 whitespace-pre-wrap">
-                        {model1Result.output}
-                      </div>
-                    </>
-                  ) : null}
-                </div>
-                <div>
-                  <h3 className="text-lg font-medium mb-2">{model2}</h3>
-                  {isLoadingModel2 ? (
-                    <div className="flex items-center justify-center p-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : model2Error ? (
-                    <Alert variant="destructive" className="mb-2">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{model2Error}</AlertDescription>
-                    </Alert>
-                  ) : model2Result ? (
-                    <>
-                      <div className="text-sm text-muted-foreground mb-2">
-                        Response time: {model2Result.responseTime}ms
-                      </div>
-                      <div className="p-4 rounded-md bg-muted/50 whitespace-pre-wrap">
-                        {model2Result.output}
-                      </div>
-                    </>
-                  ) : null}
-                </div>
-              </TabsContent>
-            </Tabs>
+                )}
+                {model2Error && (
+                  <Alert variant="destructive" className="mb-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{model2Error}</AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
