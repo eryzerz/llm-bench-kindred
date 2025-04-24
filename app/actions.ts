@@ -7,6 +7,7 @@ type ModelRequestParams = {
   userPrompt: string;
   modelId: string;
   customApiKey?: string;
+  temperature: number;
 };
 
 type ModelResponse = {
@@ -22,6 +23,7 @@ async function callOpenRouter({
   systemPrompt,
   userPrompt,
   customApiKey,
+  temperature,
 }: ModelRequestParams): Promise<ModelResponse> {
   const startTime = Date.now();
 
@@ -63,6 +65,7 @@ async function callOpenRouter({
             content: userPrompt,
           },
         ],
+        temperature: temperature,
       },
       {
         headers: {

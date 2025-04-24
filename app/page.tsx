@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Slider } from "@/components/ui/slider";
 import { generateWithModel } from "./actions";
 import {
   regularSystemPrompt,
@@ -59,6 +60,7 @@ export default function LLMComparisonApp() {
   const [model1, setModel1] = useState("openai/gpt-4o-mini");
   const [model2, setModel2] = useState("google/gemini-2.0-flash-lite-001");
   const [customApiKey, setCustomApiKey] = useState("");
+  const [temperature, setTemperature] = useState(0.7);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [model1Error, setModel1Error] = useState<string | null>(null);
@@ -113,11 +115,15 @@ export default function LLMComparisonApp() {
       customApiKey: customApiKey || undefined,
     };
 
+    // Add temperature to both requests
+    const request1WithTemp = { ...model1Request, temperature };
+    const request2WithTemp = { ...model2Request, temperature };
+
     try {
       // Make parallel requests for both models
       const [result1, result2] = await Promise.all([
-        generateWithModel(model1Request),
-        generateWithModel(model2Request),
+        generateWithModel(request1WithTemp),
+        generateWithModel(request2WithTemp),
       ]);
 
       // Set results after both are completed
@@ -246,6 +252,25 @@ export default function LLMComparisonApp() {
                   Advanced Settings
                 </AccordionTrigger>
                 <AccordionContent>
+                  <div className="space-y-3 pt-4">
+                    <Label htmlFor="temperature">
+                      Temperature ({temperature.toFixed(1)})
+                    </Label>
+                    <Slider
+                      id="temperature"
+                      min={0}
+                      max={2}
+                      step={0.1}
+                      value={[temperature]}
+                      onValueChange={(value) => setTemperature(value[0])}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Controls randomness: Lower values (e.g., 0.2) make output
+                      more focused, higher values (e.g., 1.0) make it more
+                      creative.
+                    </p>
+                  </div>
+
                   <div className="space-y-2 pt-2">
                     <Label htmlFor="apiKey">
                       OpenRouter API Key (optional)
