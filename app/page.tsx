@@ -42,6 +42,7 @@ import {
 const models = [
   { id: "openai/gpt-4o-mini", name: "GPT-4o Mini" },
   { id: "openai/o3-mini", name: "o3 Mini" },
+  { id: "openai/gpt-4.1-nano", name: "4.1 Nano" },
   { id: "google/gemini-2.0-flash-lite-001", name: "Gemini 2.0 Flash Lite" },
   { id: "google/gemini-2.0-flash-001", name: "Gemini 2.0 Flash" },
 ];
