@@ -38,12 +38,15 @@ import {
   regularUserPrompt,
   tutorialSystemPrompt,
   tutorialUserPrompt,
+  maxSystemPrompt,
+  maxUserPrompt,
 } from "./prompts";
 
 const models = [
-  { id: "openai/gpt-4o-mini", name: "GPT-4o Mini" },
+  { id: "openai/gpt-4.1-mini", name: "GPT 4.1 Mini" },
+  { id: "openai/gpt-4.1-nano", name: "GPT 4.1 Nano" },
   { id: "openai/o3-mini", name: "o3 Mini" },
-  { id: "openai/gpt-4.1-nano", name: "4.1 Nano" },
+  { id: "openai/gpt-4o-mini", name: "GPT 4o Mini" },
   { id: "google/gemini-2.0-flash-lite-001", name: "Gemini 2.0 Flash Lite" },
   { id: "google/gemini-2.0-flash-001", name: "Gemini 2.0 Flash" },
 ];
@@ -81,6 +84,9 @@ export default function LLMComparisonApp() {
     } else if (value === "tutorial") {
       setSystemPrompt(tutorialSystemPrompt);
       setUserPrompt(tutorialUserPrompt);
+    } else if (value === "max") {
+      setSystemPrompt(maxSystemPrompt);
+      setUserPrompt(maxUserPrompt);
     } else {
       // Custom option - reset to empty
       setSystemPrompt("");
@@ -180,9 +186,10 @@ export default function LLMComparisonApp() {
               onValueChange={handlePromptOptionChange}
               className="w-full"
             >
-              <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsList className="grid w-full grid-cols-4 mb-6">
                 <TabsTrigger value="regular">Regular</TabsTrigger>
                 <TabsTrigger value="tutorial">Tutorial</TabsTrigger>
+                <TabsTrigger value="max">Max's Prompt</TabsTrigger>
                 <TabsTrigger value="custom">Custom</TabsTrigger>
               </TabsList>
             </Tabs>
