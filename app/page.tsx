@@ -61,7 +61,7 @@ export default function LLMComparisonApp() {
   const [systemPrompt, setSystemPrompt] = useState("");
   const [userPrompt, setUserPrompt] = useState("");
   const [model1, setModel1] = useState("openai/gpt-4o-mini");
-  const [model2, setModel2] = useState("google/gemini-2.0-flash-lite-001");
+  const [model2, setModel2] = useState("openai/gpt-4.1-nano");
   const [customApiKey, setCustomApiKey] = useState("");
   const [temperature, setTemperature] = useState(0.7);
   const [isLoading, setIsLoading] = useState(false);
