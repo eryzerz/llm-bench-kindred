@@ -33,14 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Slider } from "@/components/ui/slider";
 import { generateWithModel } from "./actions";
-import {
-  regularSystemPrompt,
-  regularUserPrompt,
-  tutorialSystemPrompt,
-  tutorialUserPrompt,
-  maxSystemPrompt,
-  maxUserPrompt,
-} from "./prompts";
+import { usePromptContext } from "@/hooks/usePromptContext";
 
 const models = [
   { id: "openai/gpt-4.1-mini", name: "GPT 4.1 Mini" },
@@ -57,9 +50,15 @@ type ModelResult = {
 };
 
 export default function LLMComparisonApp() {
-  const [promptOption, setPromptOption] = useState("custom");
-  const [systemPrompt, setSystemPrompt] = useState("");
-  const [userPrompt, setUserPrompt] = useState("");
+  const {
+    promptOption,
+    systemPrompt,
+    userPrompt,
+    setPromptOption,
+    setSystemPrompt,
+    setUserPrompt,
+  } = usePromptContext();
+
   const [model1, setModel1] = useState("openai/gpt-4o-mini");
   const [model2, setModel2] = useState("openai/gpt-4.1-nano");
   const [customApiKey, setCustomApiKey] = useState("");
@@ -74,24 +73,9 @@ export default function LLMComparisonApp() {
     { id: string; result: ModelResult }[]
   >([]);
 
-  // Handle prompt option change
-  const handlePromptOptionChange = (value: string) => {
-    setPromptOption(value);
-
-    if (value === "regular") {
-      setSystemPrompt(regularSystemPrompt);
-      setUserPrompt(regularUserPrompt);
-    } else if (value === "tutorial") {
-      setSystemPrompt(tutorialSystemPrompt);
-      setUserPrompt(tutorialUserPrompt);
-    } else if (value === "max") {
-      setSystemPrompt(maxSystemPrompt);
-      setUserPrompt(maxUserPrompt);
-    } else {
-      // Custom option - reset to empty
-      setSystemPrompt("");
-      setUserPrompt("");
-    }
+  // Handle tab change with type casting
+  const handleTabChange = (value: string) => {
+    setPromptOption(value as "regular" | "tutorial" | "max" | "custom");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -183,7 +167,7 @@ export default function LLMComparisonApp() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <Tabs
               value={promptOption}
-              onValueChange={handlePromptOptionChange}
+              onValueChange={handleTabChange}
               className="w-full"
             >
               <TabsList className="grid w-full grid-cols-4 mb-6">
